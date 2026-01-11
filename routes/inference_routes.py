@@ -233,6 +233,29 @@ def generate_video_frames():
     cap.release()
 
 
+# ---------------- Upload Video ----------------
+@inference_bp.route("/upload", methods=["POST"])
+def upload_video():
+    global VIDEO_PATH
+
+    if "video" not in request.files:
+        return jsonify({"status": "error", "message": "No video file in request"}), 400
+
+    file = request.files["video"]
+    if file.filename == "":
+        return jsonify({"status": "error", "message": "No selected file"}), 400
+
+    save_dir = "uploads/videos"
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, file.filename)
+    file.save(save_path)
+
+    VIDEO_PATH = save_path
+    print(f"📁 Uploaded video saved to: {VIDEO_PATH}")
+
+    return jsonify({"status": "ok", "video_path": VIDEO_PATH})
+
+
 @inference_bp.route("/stream")
 def stream_video():
     try:
