@@ -1,0 +1,220 @@
+:root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --danger: #dc2626;
+    --bg-dark: #0f172a;
+    --card-bg: #ffffff;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: #f8fafc;
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header */
+header {
+    background: var(--bg-dark);
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+.logo-area { display: flex; align-items: center; gap: 12px; }
+.logo-area i { font-size: 1.8rem; color: #60a5fa; }
+header h1 { font-size: 1.4rem; margin: 0; font-weight: 600; }
+header h1 span { font-weight: 300; opacity: 0.8; }
+
+.status-indicator { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+.dot { width: 10px; height: 10px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px #22c55e; }
+
+/* Workspace */
+.workspace {
+    display: flex;
+    flex-wrap: wrap; /* Responsive wrap */
+    gap: 1.5rem;
+    padding: 1.5rem;
+    flex: 1;
+}
+
+.video-section { flex: 7; min-width: 400px; }
+.control-section { flex: 3; min-width: 300px; }
+
+.card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+    height: 100%;
+}
+
+/* Video Container */
+.video-container {
+    position: relative;
+    background: #000;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+
+
+/* RTSP Section Styling */
+.rtsp-section {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    width: 80%; /* Makes the entire row wider within the dropzone */
+    max-width: 700px;
+}
+
+#rtspUrl {
+    flex: 2; /* This makes the input field much longer than the button */
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+#rtspUrl:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(1, 176, 245, 0.904);
+}
+
+#rtspUrl::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#addRtspBtn {
+    flex: 1; /* Keeps button proportional but smaller than the input */
+    white-space: nowrap; /* Prevents text from wrapping on small screens */
+    padding: 12px 20px;
+    background: #006fff; /* Matches your secondary button color */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#addRtspBtn:hover {
+    background: #64748b;
+}
+
+
+video, canvas, img#videoPlayer{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill; /* or 'cover' if you want full fill with cropping */
+}
+
+
+.upload-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    background: rgba(15, 23, 42, 0.9);
+    z-index: 10;
+    transition: opacity 0.3s;
+}
+
+.rtsp-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+}
+.rtsp-section input {
+    flex: 1;
+}
+.rtsp-section button {
+    flex-shrink: 0;
+}
+
+
+.upload-placeholder i { font-size: 3rem; margin-bottom: 1rem; color: var(--primary); }
+
+/* Modules List */
+.control-card { padding: 1.5rem; display: flex; flex-direction: column; }
+.control-card h3 { margin: 0; font-size: 1.2rem; }
+.subtitle { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+
+.module-list { display: flex; flex-direction: column; gap: 0.75rem; flex: 1; }
+
+.module-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.module-item:hover { border-color: var(--primary); background: #eff6ff; }
+
+.module-info { margin-left: 12px; }
+.module-info strong { display: block; font-size: 0.95rem; }
+.module-info small { color: var(--text-muted); font-size: 0.8rem; }
+
+/* Custom Checkbox */
+input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
+
+/* Buttons */
+.action-group { display: flex; flex-direction: column; gap: 10px; margin-top: 1.5rem; }
+.btn-primary, .btn-danger, .btn-secondary {
+    padding: 0.8rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.1s, opacity 0.2s;
+}
+
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-secondary { background: #475569; color: white; font-size: 0.8rem; }
+button:active { transform: scale(0.98); }
+
+/* Footer */
+footer {
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.85rem;
+    background: white;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 992px) {
+    .workspace { flex-direction: column; }
+    .video-section, .control-section { flex: 1 1 100%; }
+}
