@@ -10,7 +10,7 @@ inference_bp = Blueprint("inference", __name__)
 
 # ---------------- Device & Models ----------------
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-print(f"🔥 Using device: {DEVICE}")
+print(f" Using device: {DEVICE}")
 
 MODEL_PATHS = {
     "ppe": "models/ppe.pt",
@@ -33,6 +33,19 @@ CURRENT_MODELS = []
 VIDEO_PATH = None
 fall_states = {}  # store fall info per track_id
 
+# ---------------- Custom Colors ----------------
+COLORS = {
+    "helmet": (0, 255, 0),       # Green
+    "vest": (0, 255, 0),         # Green
+    "head": (0, 0, 255),         # Red
+    "forklift": (0, 255, 255),   # Yellow
+    "fall_keypoints": (0, 255, 255),   # Yellow dots
+    "fall_skeleton": (255, 200, 100),  # Light blue lines
+    "fall_alert_text": (0, 0, 255),     # Red alert text
+    "fire": (0, 0, 255),          # Red fire
+    "smoke": (128, 128, 128)      # Gray smoke
+}
+
 # ---------------- Fall Utils ----------------
 def draw_keypoints(frame, keypoints, confidence_threshold=0.5):
     if len(keypoints) == 0:
@@ -48,11 +61,11 @@ def draw_keypoints(frame, keypoints, confidence_threshold=0.5):
             cv2.line(frame,
                      (int(keypoints[p1][0]), int(keypoints[p1][1])),
                      (int(keypoints[p2][0]), int(keypoints[p2][1])),
-                     (255, 255, 0), 1)
+                     COLORS["fall_skeleton"], 2)
     for kp in keypoints:
         x, y, conf = kp
         if conf > confidence_threshold:
-            cv2.circle(frame, (int(x), int(y)), 3, (0, 0, 255), -1)
+            cv2.circle(frame, (int(x), int(y)), 4, COLORS["fall_keypoints"], -1)
 
 def calculate_movement_speed(current_pos, history):
     if len(history) < 2:
@@ -106,11 +119,9 @@ def detect_fall(keypoints, track_id, frame_height, fall_duration_threshold=3.0):
             'fall_start_time': None
         }
 
-    # Update angle change
     angle_change = abs(spine_angle - fall_states[track_id].get('last_spine_angle', spine_angle))
     fall_states[track_id]['last_spine_angle'] = spine_angle
 
-    # Update position history
     current_time = time.time()
     if current_time - fall_states[track_id]['last_update_time'] > 0.01:
         fall_states[track_id]['position_history'].append(center)
@@ -118,7 +129,6 @@ def detect_fall(keypoints, track_id, frame_height, fall_duration_threshold=3.0):
         if len(fall_states[track_id]['position_history']) > 10:
             fall_states[track_id]['position_history'].pop(0)
 
-    # Calculate speed
     v_speed, h_speed = calculate_movement_speed(center, fall_states[track_id]['position_history'])
     sudden_angle_change = angle_change > 65
     shoulder_hip_ratio = abs(shoulder_center[1] - hip_mid[1]) / frame_height
@@ -131,7 +141,6 @@ def detect_fall(keypoints, track_id, frame_height, fall_duration_threshold=3.0):
         fall_states[track_id]['normal_height'] = current_height
     height_ratio = current_height / fall_states[track_id]['normal_height'] if fall_states[track_id]['normal_height'] else 1
 
-    # Track stillness
     if total_speed < 0.5:
         fall_states[track_id]['time_still'] += 1
     else:
@@ -145,7 +154,6 @@ def detect_fall(keypoints, track_id, frame_height, fall_duration_threshold=3.0):
     if fall_states[track_id]['time_still'] > 60:
         is_fall_candidate = True
 
-    # Update fall states
     if is_fall_candidate:
         fall_states[track_id]['falling_frames'] += 2
         fall_states[track_id]['confirmation_frames'] += 1
@@ -156,13 +164,11 @@ def detect_fall(keypoints, track_id, frame_height, fall_duration_threshold=3.0):
         fall_states[track_id]['confirmation_frames'] = 0
         fall_states[track_id]['fall_start_time'] = None
 
-    # Confirm fall after threshold
     if fall_states[track_id]['confirmation_frames'] > 5:
         if fall_states[track_id]['fall_start_time'] and (current_time - fall_states[track_id]['fall_start_time'] >= fall_duration_threshold):
             fall_states[track_id]['is_fallen'] = True
 
     return fall_states[track_id]['is_fallen']
-
 
 # ---------------- Start Analysis ----------------
 @inference_bp.route("/start", methods=["POST"])
@@ -182,12 +188,59 @@ def start_analysis():
     CURRENT_MODELS = valid_models
     print(f"🔥 Analysis started with models: {CURRENT_MODELS}")
 
-    # Reset fall states if fall not selected
     if "fall" not in CURRENT_MODELS:
         fall_states.clear()
 
     return jsonify({"status": "ok", "models": CURRENT_MODELS})
 
+# ---------------- Custom Drawing Functions ----------------
+def draw_ppe_forklift_fire_smoke(frame, results, model_name):
+    for idx, box in enumerate(results[0].boxes.data):
+        cls_id = int(results[0].boxes.cls[idx])
+        cls_name = results[0].names[cls_id]
+        x1, y1, x2, y2 = box[:4].cpu().numpy().astype(int)
+
+        color = (255, 255, 255)  # default
+        if model_name == "ppe":
+            if cls_name in ["helmet", "vest"]:
+                color = COLORS["helmet"]
+            elif cls_name == "head":
+                color = COLORS["head"]
+        elif model_name == "forklift":
+            color = COLORS["forklift"]
+        elif model_name == "fire":
+            color = COLORS["fire"]
+        elif model_name == "smoke":
+            color = COLORS["smoke"]
+
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+        cv2.putText(frame, cls_name, (x1, y1-10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
+
+def draw_fall_keypoints(frame, keypoints, alert=False):
+    skeleton = [[15, 13], [13, 11], [16, 14], [14, 12],
+                [11, 12], [5, 11], [6, 12], [5, 6],
+                [5, 7], [6, 8], [7, 9], [8, 10],
+                [1, 2], [0, 1], [0, 2], [1, 3],
+                [2, 4], [3, 5], [4, 6]]
+
+    for p1, p2 in skeleton:
+        if p1 >= len(keypoints) or p2 >= len(keypoints):
+            continue
+        x1, y1, conf1 = keypoints[p1]
+        x2, y2, conf2 = keypoints[p2]
+        if conf1 > 0.5 and conf2 > 0.5:
+            cv2.line(frame, (int(x1), int(y1)), (int(x2), int(y2)),
+                     COLORS["fall_skeleton"], 2)
+
+    for x, y, conf in keypoints:
+        if conf > 0.5:
+            cv2.circle(frame, (int(x), int(y)), 4, COLORS["fall_keypoints"], -1)
+
+    if alert:
+        head_x, head_y = keypoints[0][:2]
+        cv2.putText(frame, "FALL DETECTED", (int(head_x)-40, max(int(head_y)-15, 10)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, COLORS["fall_alert_text"], 3)
 
 # ---------------- Video Frame Generator ----------------
 def process_frame(frame):
@@ -195,24 +248,16 @@ def process_frame(frame):
     for model_name in CURRENT_MODELS:
         results = MODELS[model_name](annotated)
 
-        # Fall detection
-        if model_name == "fall" and results[0].keypoints is not None:
+        if model_name in ["ppe", "forklift", "fire", "smoke"]:
+            draw_ppe_forklift_fire_smoke(annotated, results, model_name)
+        elif model_name == "fall" and results[0].keypoints is not None:
             for idx, keypoints in enumerate(results[0].keypoints.data):
                 keypoints_np = keypoints.cpu().numpy()
                 track_id = int(results[0].boxes.data[idx][4])
-                if detect_fall(keypoints_np, track_id, frame.shape[0]):
-                    box = results[0].boxes.data[idx][:4].cpu().numpy()
-                    cv2.rectangle(annotated,
-                                  (int(box[0]), int(box[1])),
-                                  (int(box[2]), int(box[3])),
-                                  (0, 0, 255), 2)
-                    cv2.putText(annotated, 'FALL DETECTED',
-                                (int(box[0]), int(box[1]-10)),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0,0,255), 2)
+                is_fallen = detect_fall(keypoints_np, track_id, frame.shape[0])
+                draw_fall_keypoints(annotated, keypoints_np, alert=is_fallen)
 
-        annotated = results[0].plot()
     return annotated
-
 
 def generate_video_frames():
     global VIDEO_PATH
@@ -232,8 +277,7 @@ def generate_video_frames():
         yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
     cap.release()
 
-
-# ---------------- Upload Video ----------------
+# ---------------- Upload & Stream ----------------
 @inference_bp.route("/upload", methods=["POST"])
 def upload_video():
     global VIDEO_PATH
@@ -255,7 +299,6 @@ def upload_video():
 
     return jsonify({"status": "ok", "video_path": VIDEO_PATH})
 
-
 @inference_bp.route("/stream")
 def stream_video():
     try:
@@ -263,7 +306,6 @@ def stream_video():
     except Exception as e:
         print("⚠️ Stream error:", e)
         return "No video uploaded or error occurred", 404
-
 
 @inference_bp.route("/stream_rtsp")
 def stream_rtsp():

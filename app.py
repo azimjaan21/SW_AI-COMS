@@ -9,7 +9,7 @@ from config import UPLOAD_FOLDER
 from routes.main_routes import main_bp
 from routes.upload_routes import upload_bp
 from routes.inference_routes import inference_bp
-from routes.zone_routes import zone_bp
+from routes.zone_routes import danger_bp
 
 
 def create_app():
@@ -29,7 +29,7 @@ def create_app():
     app.register_blueprint(main_bp)
     app.register_blueprint(upload_bp, url_prefix="/api/upload")
     app.register_blueprint(inference_bp, url_prefix="/api/inference")
-    app.register_blueprint(zone_bp, url_prefix="/api/zones")
+    app.register_blueprint(danger_bp, url_prefix="/api/zones")
 
     # Serve uploaded videos statically
     @app.route("/uploads/videos/<path:filename>")
