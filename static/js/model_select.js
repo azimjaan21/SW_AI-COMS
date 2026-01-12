@@ -20,7 +20,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const PLACEHOLDER_SRC = "/static/images/cam.png";
 
-  // ---------- Helpers ----------
+  /* ================= Helpers ================= */
+
   const showPlaceholder = () => {
     videoPlayer.src = PLACEHOLDER_SRC;
     videoPlayer.style.display = "block";
@@ -33,16 +34,16 @@ document.addEventListener("DOMContentLoaded", () => {
     dzDrawBtn.disabled = !enabled;
     dzSaveBtn.disabled = !enabled;
     dzDeleteBtn.disabled = !enabled;
-
-    // expose to danger_zone.js
-    window.DANGER_ZONE_ACTIVE = enabled;
   };
 
   const uploadVideo = (file) => {
     const formData = new FormData();
     formData.append("video", file);
 
-    fetch("/api/inference/upload", { method: "POST", body: formData })
+    fetch("/api/inference/upload", {
+      method: "POST",
+      body: formData
+    })
       .then(res => res.json())
       .then(data => {
         if (data.status === "ok") {
@@ -65,8 +66,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  // ---------- Event Listeners ----------
-  // Video upload
+  /* ================= Event Listeners ================= */
+
+  // ---- Video upload ----
   videoInput.addEventListener("change", () => {
     if (videoInput.files.length) uploadVideo(videoInput.files[0]);
   });
@@ -82,25 +84,36 @@ document.addEventListener("DOMContentLoaded", () => {
     dropZone.classList.add("dragover");
   });
 
-  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("dragover");
+  });
 
-  // RTSP stream
+  // ---- RTSP stream ----
   addRtspBtn.addEventListener("click", () => {
     const url = rtspInput.value.trim();
     if (!url) return alert("Enter an RTSP URL first.");
+
     rtspStream = { id: "cam1", url };
     videoFile = null;
     showPlaceholder();
+
     console.log("📡 RTSP stream added:", rtspStream);
   });
 
-  // Detect danger zone checkbox
-  document.querySelector('input[value="danger_zone"]').addEventListener("change", (e) => {
-    DANGER_ZONE_SELECTED = e.target.checked;
-    updateDangerZoneUI();
-  });
+  // ---- Danger Zone checkbox ----
+  document
+    .querySelector('input[value="danger_zone"]')
+    .addEventListener("change", (e) => {
+      DANGER_ZONE_SELECTED = e.target.checked;
+      updateDangerZoneUI();
 
-  // Start stream
+      // 🔥 sync with danger_zone.js
+      if (window.enableDangerZoneMode) {
+        window.enableDangerZoneMode(DANGER_ZONE_SELECTED);
+      }
+    });
+
+  // ---- Start stream ----
   startBtn.addEventListener("click", () => {
     const selectedModels = Array.from(checkboxes)
       .filter(cb => cb.checked)
@@ -120,13 +133,19 @@ document.addEventListener("DOMContentLoaded", () => {
           STREAM_RUNNING = true;
           updateDangerZoneUI();
 
+          // 🔥 sync stream state
+          if (window.setStreamRunning) {
+            window.setStreamRunning(true);
+          }
+
           if (videoFile) {
             videoPlayer.src = "/api/inference/stream";
           } else if (rtspStream) {
             const safeUrl = rtspStream.url.includes("%")
               ? rtspStream.url
               : encodeURIComponent(rtspStream.url);
-            videoPlayer.src = `/api/inference/stream_rtsp?id=${encodeURIComponent(rtspStream.id)}&url=${safeUrl}`;
+            videoPlayer.src =
+              `/api/inference/stream_rtsp?id=${encodeURIComponent(rtspStream.id)}&url=${safeUrl}`;
           }
         } else {
           alert("Backend failed: " + data.message);
@@ -135,14 +154,21 @@ document.addEventListener("DOMContentLoaded", () => {
       .catch(err => console.error(err));
   });
 
-  // Stop stream
+  // ---- Stop stream ----
   stopBtn.addEventListener("click", () => {
     videoPlayer.src = "";
     STREAM_RUNNING = false;
     updateDangerZoneUI();
     showPlaceholder();
+
+    // 🔥 sync stream state
+    if (window.setStreamRunning) {
+      window.setStreamRunning(false);
+    }
   });
 
-  // Max 2 modules UI
-  checkboxes.forEach(cb => cb.addEventListener("change", updateCheckboxesUI));
+  // ---- Max 2 modules UI ----
+  checkboxes.forEach(cb =>
+    cb.addEventListener("change", updateCheckboxesUI)
+  );
 });

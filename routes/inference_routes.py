@@ -368,3 +368,85 @@ def stream_rtsp():
             cap.release()
             time.sleep(1)
     return Response(gen(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+# ============================================================
+# 🔥 ADDITIONAL DEBUG & TERMINAL LOGGING (APPENDED)
+# ============================================================
+
+import functools
+from flask import g
+
+# ---------------- Global Frame Counters ----------------
+FRAME_COUNTER = {
+    "video": 0,
+    "rtsp": {}
+}
+
+# ---------------- Flask Request Logs ----------------
+@inference_bp.before_request
+def log_request():
+    g.start_time = time.time()
+    print(f"➡️ [REQUEST] {request.method} {request.path}")
+
+@inference_bp.after_request
+def log_response(response):
+    elapsed = (time.time() - g.start_time) * 1000
+    print(f"⬅️ [RESPONSE] {request.path} | {elapsed:.2f} ms")
+    return response
+
+# ---------------- Safe Inference Wrapper ----------------
+def safe_inference(model, frame):
+    start = time.time()
+    with torch.no_grad():
+        results = model(frame)
+    elapsed = (time.time() - start) * 1000
+    print(f"🧠 [INFER] {model.model.names if hasattr(model, 'model') else 'model'} | {elapsed:.1f} ms")
+    return results
+
+# ---------------- Patch MODELS to Log Inference ----------------
+for _name, _model in MODELS.items():
+    MODELS[_name]._original_call = _model.__call__
+
+    def _logged_call(self, *args, **kwargs):
+        start = time.time()
+        with torch.no_grad():
+            out = self._original_call(*args, **kwargs)
+        print(f"🧠 [MODEL] {id(self)} inference {(time.time()-start)*1000:.1f} ms")
+        return out
+
+    _model.__call__ = _logged_call.__get__(_model, type(_model))
+
+print("✅ [PATCH] Inference logging enabled")
+
+# ---------------- Danger Zone Log Hook ----------------
+def log_danger(cam_id):
+    print(f"⚠️ [DANGER ZONE] Worker inside zone | camera={cam_id}")
+
+# ---------------- Fall Log Hook ----------------
+def log_fall(track_id, cam_id):
+    print(f" [FALL] CONFIRMED | track_id={track_id} | camera={cam_id}")
+
+# ---------------- Wrap Original process_frame ----------------
+_original_process_frame = process_frame
+
+def process_frame(frame, cam_id="default"):
+    start = time.time()
+    annotated = _original_process_frame(frame, cam_id)
+    elapsed = (time.time() - start) * 1000
+    print(f"🎞️ [FRAME] camera={cam_id} processed in {elapsed:.1f} ms")
+    return annotated
+
+print("✅ [PATCH] process_frame wrapped with timing")
+
+# ---------------- RTSP Connection Logs ----------------
+@inference_bp.route("/health")
+def health_check():
+    return jsonify({
+        "status": "ok",
+        "models_loaded": list(MODELS.keys()),
+        "active_models": CURRENT_MODELS,
+        "video_loaded": VIDEO_PATH is not None
+    })
+
+print("🟢 [SYSTEM] Inference debug extensions loaded")

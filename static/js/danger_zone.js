@@ -1,10 +1,9 @@
 /* ================= Elements ================= */
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
-
 const videoEl = document.getElementById("videoPlayer");
 
-/* Buttons (MATCH HTML IDs) */
+/* Buttons */
 const drawBtn = document.getElementById("dzDrawBtn");
 const saveBtn = document.getElementById("dzSaveBtn");
 const deleteBtn = document.getElementById("dzDeleteBtn");
@@ -14,22 +13,20 @@ let zones = [];
 let current = [];
 let drawing = false;
 
-let alertActive = false;
-let flash = false;
-
-/* Control flags */
 let dangerModeEnabled = false;
 let streamRunning = false;
 
+let alertActive = false;
+let flash = false;
+
 /* ================= Canvas Resize ================= */
 function resizeCanvas() {
-    if (!videoEl) return;
-
+    if (!videoEl || !videoEl.clientWidth) return;
     canvas.width = videoEl.clientWidth;
     canvas.height = videoEl.clientHeight;
 }
 window.addEventListener("resize", resizeCanvas);
-setTimeout(resizeCanvas, 500);
+videoEl.onload = resizeCanvas;
 
 /* ================= Control Logic ================= */
 function controlsEnabled() {
@@ -48,10 +45,10 @@ canvas.addEventListener("click", (e) => {
     if (!drawing || !controlsEnabled()) return;
 
     const rect = canvas.getBoundingClientRect();
-    current.push([
-        (e.clientX - rect.left) / canvas.width,
-        (e.clientY - rect.top) / canvas.height
-    ]);
+    const x = (e.clientX - rect.left) / canvas.width;
+    const y = (e.clientY - rect.top) / canvas.height;
+
+    current.push([x, y]);
     draw();
 });
 
@@ -62,13 +59,8 @@ drawBtn.onclick = () => {
     current = [];
 };
 
-saveBtn.onclick = saveZone;
-deleteBtn.onclick = deleteAll;
-
-/* ================= Backend Calls ================= */
-async function saveZone() {
+saveBtn.onclick = async () => {
     if (!controlsEnabled()) return;
-
     if (current.length < 3) {
         alert("Polygon needs at least 3 points");
         return;
@@ -86,9 +78,9 @@ async function saveZone() {
     drawing = false;
     current = [];
     loadZones();
-}
+};
 
-async function deleteAll() {
+deleteBtn.onclick = async () => {
     if (!controlsEnabled()) return;
 
     await fetch(`/api/zones/delete_all/${CAMERA_ID}/`, {
@@ -97,15 +89,16 @@ async function deleteAll() {
 
     zones = [];
     draw();
-}
+};
 
+/* ================= Backend ================= */
 async function loadZones() {
     const res = await fetch(`/api/zones/?camera_id=${CAMERA_ID}`);
     zones = await res.json();
     draw();
 }
 
-/* ================= Flash Effect ================= */
+/* ================= Flash Alert ================= */
 setInterval(() => {
     if (alertActive) flash = !flash;
     draw();
@@ -116,7 +109,7 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     zones.forEach(z => drawPoly(z.points));
-    if (current.length > 0) drawPoly(current, true);
+    if (current.length) drawPoly(current, true);
 }
 
 function drawPoly(points, dashed = false) {
@@ -139,11 +132,7 @@ function drawPoly(points, dashed = false) {
     ctx.fill();
 }
 
-/* ================= Hooks from UI / Backend ================= */
-window.setDangerAlert = (active) => {
-    alertActive = active;
-};
-
+/* ================= External Hooks ================= */
 window.enableDangerZoneMode = (active) => {
     dangerModeEnabled = active;
     updateButtons();
@@ -152,6 +141,10 @@ window.enableDangerZoneMode = (active) => {
 window.setStreamRunning = (active) => {
     streamRunning = active;
     updateButtons();
+};
+
+window.setDangerAlert = (active) => {
+    alertActive = active;
 };
 
 /* ================= Init ================= */
