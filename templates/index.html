@@ -3,44 +3,53 @@
 {% block content %}
 <div class="workspace">
 
+    <!-- ================= VIDEO SECTION ================= -->
     <div class="video-section">
         <div class="card video-card">
 
+            <div class="video-container">
 
-                <div class="video-container">
-            <img id="videoPlayer"/>
-            <div id="dropZone" class="upload-placeholder">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <p>Drag & Drop or Click to Upload Video</p>
-                <input type="file" id="videoUpload" accept="video/*" hidden>
-                <button class="btn-secondary" onclick="document.getElementById('videoUpload').click()">Select File</button>
+                <!-- Video Stream -->
+                <img id="videoPlayer" />
 
-<br><br>
-                        <!-- RTSP Stream Input -->
-                        <div class="rtsp-section">
-                <input type="text" id="rtspUrl" placeholder="Enter RTSP URL">
-                <button id="addRtspBtn" class="btn-secondary">Add RTSP Stream</button>
-                        </div>
+                <!-- Danger Zone Canvas Overlay -->
+                <canvas id="overlay"></canvas>
 
+                <!-- Upload & RTSP Placeholder -->
+                <div id="dropZone" class="upload-placeholder">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Drag & Drop or Click to Upload Video</p>
+
+                    <input type="file" id="videoUpload" accept="video/*" hidden>
+                    <button class="btn-secondary"
+                            onclick="document.getElementById('videoUpload').click()">
+                        Select File
+                    </button>
+
+                    <br><br>
+
+                    <!-- RTSP Stream Input -->
+                    <div class="rtsp-section">
+                        <input type="text" id="rtspUrl" placeholder="Enter RTSP URL">
+                        <button id="addRtspBtn" class="btn-secondary">
+                            Add RTSP Stream
+                        </button>
+                    </div>
+                </div>
 
             </div>
-
-
-
-
-
-        </div>
-
-
         </div>
     </div>
 
+    <!-- ================= CONTROL SECTION ================= -->
     <div class="control-section">
         <div class="card control-card">
+
             <h3><i class="fas fa-layer-group"></i> Detection Modules</h3>
             <p class="subtitle">Select active AI tasks</p>
 
             <div class="module-list">
+
                 <label class="module-item">
                     <input type="checkbox" value="ppe">
                     <span class="custom-check"></span>
@@ -64,12 +73,12 @@
                     <span class="custom-check"></span>
                     <div class="module-info">
                         <strong>Forklift Tracking</strong>
-                        <small>Vehicle Alerts</small>
+                        <small>Vehicle alerts</small>
                     </div>
                 </label>
 
                 <label class="module-item">
-                    <input type="checkbox" value="danger_zone">
+                    <input type="checkbox" value="danger_zone" id="dangerZoneToggle">
                     <span class="custom-check"></span>
                     <div class="module-info">
                         <strong>Danger Zone</strong>
@@ -85,8 +94,17 @@
                         <small>Worker down alerts</small>
                     </div>
                 </label>
+
             </div>
 
+            <!-- ===== Danger Zone Controls ===== -->
+            <div class="danger-zone-controls">
+                <button id="dzDrawBtn" disabled>Add Zone</button>
+                <button id="dzSaveBtn" disabled>Save Zone</button>
+                <button id="dzDeleteBtn" disabled>Delete All</button>
+            </div>
+
+            <!-- ===== Stream Controls ===== -->
             <div class="action-group">
                 <button id="startBtn" class="btn-primary">
                     <i class="fas fa-play"></i> Start Stream
@@ -95,10 +113,20 @@
                     <i class="fas fa-stop"></i> Stop Stream
                 </button>
             </div>
+
         </div>
     </div>
+
 </div>
 
+<!-- ===== Global Camera ID ===== -->
+<script>
+  const CAMERA_ID = "default";
+</script>
+
+<!-- ================= SCRIPTS ================= -->
 <script src="{{ url_for('static', filename='js/video.js') }}"></script>
 <script src="{{ url_for('static', filename='js/model_select.js') }}"></script>
+<script src="{{ url_for('static', filename='js/danger_zone.js') }}"></script>
+
 {% endblock %}

@@ -1,27 +1,31 @@
 # danger_zone_routes.py
 import os
-import json
 import time
 from flask import Blueprint, request, jsonify
 from shapely.geometry import Point, Polygon
 
+# Blueprint
 danger_bp = Blueprint("danger", __name__)
 
-# Store polygons in memory for now (can switch to DB)
-DANGER_ZONES = {}  # {camera_id: [polygon1, polygon2,...]}
+# ---------------- In-memory storage ----------------
+# {camera_id: [polygon1, polygon2, ...]}
+# polygon = list of normalized points [[x_norm, y_norm], ...]
+DANGER_ZONES = {}
 
-# ---------------- CRUD ----------------
+# ---------------- CRUD Routes ----------------
 @danger_bp.route("/", methods=["GET"])
 def list_zones():
+    """List all zones for a camera"""
     camera_id = request.args.get("camera_id")
     if not camera_id:
         return jsonify([])
 
-    zones = DANGER_ZONES.get(camera_id, [])
+    zones = DANGER_ZONES.get(str(camera_id), [])
     return jsonify([{"points": z} for z in zones])
 
 @danger_bp.route("/", methods=["POST"])
 def add_zone():
+    """Add a new zone for a camera"""
     data = request.json
     camera_id = str(data.get("camera_id"))
     points = data.get("points")  # [[x_norm, y_norm], ...]
@@ -37,15 +41,22 @@ def add_zone():
 
 @danger_bp.route("/delete_all/<camera_id>/", methods=["DELETE"])
 def delete_all(camera_id):
-    DANGER_ZONES[camera_id] = []
+    """Delete all zones for a camera"""
+    DANGER_ZONES[str(camera_id)] = []
     return jsonify({"status": "ok"})
 
 # ---------------- Danger Zone Check ----------------
 def check_person_in_danger_zone(camera_id, keypoints, frame_dims):
     """
-    keypoints: numpy array of shape (17,3) - [x, y, conf]
-    frame_dims: (width, height)
-    Returns True if any keypoint inside any polygon
+    Check if any person keypoints are inside a danger zone
+
+    Args:
+        camera_id: str or int
+        keypoints: numpy array of shape (17,3) [x, y, conf]
+        frame_dims: tuple (width, height)
+
+    Returns:
+        bool: True if any keypoint inside any polygon
     """
     width, height = frame_dims
     zones = DANGER_ZONES.get(str(camera_id), [])

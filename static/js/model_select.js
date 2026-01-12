@@ -8,8 +8,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const rtspInput = document.getElementById("rtspUrl");
   const addRtspBtn = document.getElementById("addRtspBtn");
 
+  // 🔥 Danger Zone buttons
+  const dzDrawBtn = document.getElementById("dzDrawBtn");
+  const dzSaveBtn = document.getElementById("dzSaveBtn");
+  const dzDeleteBtn = document.getElementById("dzDeleteBtn");
+
   let videoFile = null;
   let rtspStream = null;
+  let STREAM_RUNNING = false;
+  let DANGER_ZONE_SELECTED = false;
+
   const PLACEHOLDER_SRC = "/static/images/cam.png";
 
   // ---------- Helpers ----------
@@ -17,6 +25,17 @@ document.addEventListener("DOMContentLoaded", () => {
     videoPlayer.src = PLACEHOLDER_SRC;
     videoPlayer.style.display = "block";
     dropZone.style.display = "none";
+  };
+
+  const updateDangerZoneUI = () => {
+    const enabled = STREAM_RUNNING && DANGER_ZONE_SELECTED;
+
+    dzDrawBtn.disabled = !enabled;
+    dzSaveBtn.disabled = !enabled;
+    dzDeleteBtn.disabled = !enabled;
+
+    // expose to danger_zone.js
+    window.DANGER_ZONE_ACTIVE = enabled;
   };
 
   const uploadVideo = (file) => {
@@ -75,6 +94,12 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("📡 RTSP stream added:", rtspStream);
   });
 
+  // Detect danger zone checkbox
+  document.querySelector('input[value="danger_zone"]').addEventListener("change", (e) => {
+    DANGER_ZONE_SELECTED = e.target.checked;
+    updateDangerZoneUI();
+  });
+
   // Start stream
   startBtn.addEventListener("click", () => {
     const selectedModels = Array.from(checkboxes)
@@ -92,10 +117,15 @@ document.addEventListener("DOMContentLoaded", () => {
       .then(res => res.json())
       .then(data => {
         if (data.status === "ok") {
+          STREAM_RUNNING = true;
+          updateDangerZoneUI();
+
           if (videoFile) {
             videoPlayer.src = "/api/inference/stream";
           } else if (rtspStream) {
-            const safeUrl = rtspStream.url.includes("%") ? rtspStream.url : encodeURIComponent(rtspStream.url);
+            const safeUrl = rtspStream.url.includes("%")
+              ? rtspStream.url
+              : encodeURIComponent(rtspStream.url);
             videoPlayer.src = `/api/inference/stream_rtsp?id=${encodeURIComponent(rtspStream.id)}&url=${safeUrl}`;
           }
         } else {
@@ -108,6 +138,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Stop stream
   stopBtn.addEventListener("click", () => {
     videoPlayer.src = "";
+    STREAM_RUNNING = false;
+    updateDangerZoneUI();
     showPlaceholder();
   });
 

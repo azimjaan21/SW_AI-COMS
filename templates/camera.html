@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Camera View</title>
+  <style>
+    #container {
+      position: relative;
+      width: 960px;
+    }
+    #video {
+      width: 960px;
+      height: 540px;
+    }
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+    .controls {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="container">
+  <img id="video" src="/api/stream?camera_id=1">
+  <canvas id="overlay" width="960" height="540"></canvas>
+</div>
+
+<div class="controls">
+  <button onclick="startDraw()">➕ Add Zone</button>
+  <button onclick="saveZone()">💾 Save</button>
+  <button onclick="deleteAll()">🗑 Delete All</button>
+</div>
+
+<script>
+  const CAMERA_ID = "1";
+</script>
+<script src="/static/js/danger_zone.js"></script>
+
+</body>
+</html>

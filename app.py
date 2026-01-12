@@ -9,7 +9,7 @@ from config import UPLOAD_FOLDER
 from routes.main_routes import main_bp
 from routes.upload_routes import upload_bp
 from routes.inference_routes import inference_bp
-from routes.zone_routes import danger_bp
+from routes.danger_zone_routes import danger_bp
 
 
 def create_app():

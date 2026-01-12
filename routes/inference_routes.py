@@ -243,34 +243,69 @@ def draw_fall_keypoints(frame, keypoints, alert=False):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, COLORS["fall_alert_text"], 3)
 
 # ---------------- Video Frame Generator ----------------
-def process_frame(frame):
+# Add this import at the top
+from routes.danger_zone_routes import check_person_in_danger_zone
+
+# ---------------- Video Frame Processing ----------------
+def process_frame(frame, cam_id="default"):
+    """
+    Processes a single frame with current models:
+    - PPE / Forklift / Fire / Smoke
+    - Fall detection
+    - Danger Zone alert
+    """
     annotated = frame.copy()
+    danger_alert = False  # flag for worker in danger zone
+
     for model_name in CURRENT_MODELS:
         results = MODELS[model_name](annotated)
 
         if model_name in ["ppe", "forklift", "fire", "smoke"]:
             draw_ppe_forklift_fire_smoke(annotated, results, model_name)
-        elif model_name == "fall" and results[0].keypoints is not None:
+        elif model_name in ["fall", "danger_zone"] and results[0].keypoints is not None:
             for idx, keypoints in enumerate(results[0].keypoints.data):
                 keypoints_np = keypoints.cpu().numpy()
                 track_id = int(results[0].boxes.data[idx][4])
-                is_fallen = detect_fall(keypoints_np, track_id, frame.shape[0])
+
+                is_fallen = False
+                if model_name == "fall":
+                    is_fallen = detect_fall(keypoints_np, track_id, frame.shape[0])
+
                 draw_fall_keypoints(annotated, keypoints_np, alert=is_fallen)
 
+                # Danger Zone check
+                if check_person_in_danger_zone(cam_id, keypoints_np,
+                                            (frame.shape[1], frame.shape[0])):
+                    danger_alert = True
+
+
+    # Draw Danger Zone alert on top-right
+    if danger_alert:
+        text = "WORKER IN DANGER ZONE"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 1.0
+        thickness = 3
+        text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
+        x = frame.shape[1] - text_size[0] - 20
+        y = 40
+        cv2.putText(annotated, text, (x, y), font, font_scale, (0, 0, 255), thickness)
+
     return annotated
+
 
 def generate_video_frames():
     global VIDEO_PATH
     if not VIDEO_PATH or not os.path.exists(VIDEO_PATH):
         raise RuntimeError("No video uploaded yet")
 
+    cam_id = os.path.basename(VIDEO_PATH)  # use filename as camera ID
     cap = cv2.VideoCapture(VIDEO_PATH)
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             continue
-        annotated = process_frame(frame)
+        annotated = process_frame(frame, cam_id=cam_id)
         ret2, buffer = cv2.imencode(".jpg", annotated)
         if not ret2:
             continue
@@ -314,6 +349,7 @@ def stream_rtsp():
         return "RTSP URL missing", 400
 
     def gen():
+        cam_id = rtsp_url  # use RTSP URL as camera ID
         while True:
             cap = cv2.VideoCapture(rtsp_url)
             if not cap.isOpened():
@@ -324,7 +360,7 @@ def stream_rtsp():
                 ret, frame = cap.read()
                 if not ret:
                     break
-                annotated = process_frame(frame)
+                annotated = process_frame(frame, cam_id=cam_id)
                 ret2, buffer = cv2.imencode(".jpg", annotated)
                 if not ret2:
                     continue

@@ -218,3 +218,34 @@ footer {
     .workspace { flex-direction: column; }
     .video-section, .control-section { flex: 1 1 100%; }
 }
+
+
+.video-container {
+    position: relative;
+}
+
+.danger-zone-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    justify-content: center;
+}
+
+.danger-zone-controls button {
+    padding: 8px 14px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: none;
+}
+
+.danger-zone-controls button:disabled {
+    background: #ccc;
+    color: #666;
+    cursor: not-allowed;
+}
+
+.danger-zone-controls button:not(:disabled) {
+    background: #e53935;
+    color: white;
+    cursor: pointer;
+}
