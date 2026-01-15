@@ -18,24 +18,17 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Activate - Windows
-# .venv\Scripts\activate
+.venv\Scripts\activate
 
-
-Install Dependencies
-Bash
+```
+## Install Dependencies
+```Bash
 
 pip install --upgrade pip
 pip install -r requirements.txt
-[!IMPORTANT]
-
-NVIDIA Jetson Users: Do not install torch via pip. Use the pre-built JetPack wheels provided by NVIDIA to ensure GPU acceleration is enabled.
-
-Standard PC Users (CUDA 12.1):
-
-Bash
-
 pip install torch torchvision torchaudio --index-url [https://download.pytorch.org/whl/cu121](https://download.pytorch.org/whl/cu121)
-2. Prepare Models
+```
+## 2. Prepare Models
 Place your YOLO weights in the models/ directory. Ensure the filenames match the following:
 
 ppe.pt — (PPE Detection)
@@ -46,23 +39,29 @@ forklift.pt — (Forklift/Vehicle Detection)
 
 yolo11s-pose.pt — (For Danger Zone & Fall Detection)
 
-3. Run the Flask App
+## 3. Run the Flask App
 Start the web server by running the application script:
-
-Bash
-
+```
 python app.py
-The server will initialize and become available at: http://0.0.0.0:5000/
+```
+The server will initialize and become available at: 
 
-4. Using the Web Interface
-Open Browser: Navigate to http://localhost:5000/.
+## 4. Using the Web Interface
+Open Browser: Navigate to **http://127.0.0.1:5000/**
 
-Upload Video: Use the upload button in the left 70% video window to select your footage.
+## 5. Upload Video or Add RTSP CAM URL:
+<img width="1916" height="959" alt="image" src="https://github.com/user-attachments/assets/3940f19c-0f7e-49bb-8e2e-05ba9f105e11" />
 
-Configure Tasks: * Select detection modules from the right-side list (PPE, Fire, Forklift).
 
-For Danger Zone, use the interactive tool to draw your restricted area.
+# Configure Tasks: * Select detection modules from the right-side list (PPE, Fire, Forklift):
+<img width="587" height="557" alt="image" src="https://github.com/user-attachments/assets/48580c33-c99c-4081-b67d-2d374fb182b3" />
 
-Start Analysis: Click the Start button to begin real-time processing.
 
-Monitor: View real-time annotated frames and safety alerts directly in the browser.
+
+## **Start Stream**: Button to begin real-time processing.
+
+--------
+
+## Monitor: View real-time annotated frames and safety alerts directly in the browser.
+
+<img width="1912" height="896" alt="image" src="https://github.com/user-attachments/assets/910ef65c-76f9-4352-82a2-ab02320d11a6" />
