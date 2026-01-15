@@ -71,7 +71,8 @@ saveBtn.onclick = async () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             camera_id: CAMERA_ID,
-            points: current
+            points: current,
+            normalized: true
         })
     });
 

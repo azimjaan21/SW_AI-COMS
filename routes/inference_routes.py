@@ -244,7 +244,7 @@ def draw_fall_keypoints(frame, keypoints, alert=False):
 
 # ---------------- Video Frame Generator ----------------
 # Add this import at the top
-from routes.danger_zone_routes import check_person_in_danger_zone
+from routes.danger_zone_routes import check_persons_in_danger_zone
 
 # ---------------- Video Frame Processing ----------------
 def process_frame(frame, cam_id="default"):
@@ -265,7 +265,7 @@ def process_frame(frame, cam_id="default"):
         elif model_name in ["fall", "danger_zone"] and results[0].keypoints is not None:
             for idx, keypoints in enumerate(results[0].keypoints.data):
                 keypoints_np = keypoints.cpu().numpy()
-                track_id = int(results[0].boxes.data[idx][4])
+                track_id = idx
 
                 is_fallen = False
                 if model_name == "fall":
@@ -274,9 +274,13 @@ def process_frame(frame, cam_id="default"):
                 draw_fall_keypoints(annotated, keypoints_np, alert=is_fallen)
 
                 # Danger Zone check
-                if check_person_in_danger_zone(cam_id, keypoints_np,
-                                            (frame.shape[1], frame.shape[0])):
+                if check_persons_in_danger_zone(
+                    cam_id,
+                    [keypoints_np],  # ✅ LIST OF PERSONS
+                    (frame.shape[1], frame.shape[0])
+                ):
                     danger_alert = True
+
 
 
     # Draw Danger Zone alert on top-right
@@ -437,7 +441,7 @@ def process_frame(frame, cam_id="default"):
     print(f"🎞️ [FRAME] camera={cam_id} processed in {elapsed:.1f} ms")
     return annotated
 
-print("✅ [PATCH] process_frame wrapped with timing")
+print("[PATCH] process_frame wrapped with timing")
 
 # ---------------- RTSP Connection Logs ----------------
 @inference_bp.route("/health")
